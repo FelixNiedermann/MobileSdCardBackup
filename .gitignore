@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.pyc
+.env
+.venv
+
+# OS
+.DS_Store
+
+# Logs
+*.log
+
+# VM / mounts
+/mnt/*
+/var/disks/*
