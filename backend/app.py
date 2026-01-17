@@ -1,3 +1,4 @@
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 try:
@@ -8,6 +9,8 @@ except ModuleNotFoundError:
 app = FastAPI()
 app.include_router(router)
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+
 @app.get("/")
 def ui():
-    return FileResponse("ui/index.html")
+    return FileResponse(BASE_DIR / "ui" / "index.html")

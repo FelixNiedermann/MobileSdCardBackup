@@ -55,6 +55,7 @@ pre{background:#020617;color:#e5e7eb;padding:10px;border-radius:10px;font-size:1
 <div class="card">
 <h3>Source</h3>
 <select id="srcDrive"></select>
+<div id="srcSpace" class="space"></div>
 <div class="breadcrumb" id="srcCrumb"></div>
 <div class="list" id="srcList"></div>
 </div>
@@ -70,6 +71,7 @@ pre{background:#020617;color:#e5e7eb;padding:10px;border-radius:10px;font-size:1
 <div class="card">
 <h3>Backup</h3>
 <input id="backupName" placeholder="Backup name">
+<div id="backupPreview" class="space"></div>
 <label><input type="checkbox" id="verify" checked> Verify checksum</label>
 <details>
 <summary>More options</summary>
@@ -120,6 +122,35 @@ dstSpace.textContent=`Free ${fmtBytes(free)} of ${fmtBytes(total)}${low?" (low s
 dstSpace.className=low?"space low":"space";
 }
 
+function updateSrcSpace(){
+let d=drivesCache.find(x=>x.id===S.src.drive);
+if(!d || !d.space){srcSpace.textContent="";srcSpace.className="space";return;}
+let free=d.space.free, total=d.space.total;
+let pct=total?free/total:0;
+let low=pct<0.1 || free<10*1024*1024*1024;
+srcSpace.textContent=`Free ${fmtBytes(free)} of ${fmtBytes(total)}${low?" (low space)":""}`;
+srcSpace.className=low?"space low":"space";
+}
+
+function fmtTimestamp(d){
+let pad=n=>String(n).padStart(2,"0");
+return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+}
+
+function defaultBackupName(){
+let name=S.src.path.split("/").pop()||"backup";
+return name.replace(/\s+/g,"_");
+}
+
+function updateBackupPreview(){
+let name=(backupName.value||defaultBackupName()).replace(/\s+/g,"_");
+let ts=fmtTimestamp(new Date());
+let base=S.dst.path?`/${S.dst.path}`:"";
+let folder=overwrite.checked?(base||"/"):(base?`${base}/`:"/")+`${name}__${ts}`;
+let drive=S.dst.drive?`${S.dst.drive}:`:"";
+backupPreview.textContent=`Saved to ${drive}${folder}`;
+}
+
 function pickNewest(drives, preferPrefix){
 let list=drives.filter(x=>x.mounted);
 if(preferPrefix){
@@ -164,6 +195,8 @@ S.dst.drive=pickByName(mounted,"ssd")||mounted.find(x=>x.id!==S.src.drive)?.id||
 dstDrive.value=S.dst.drive;
 }
 updateDstSpace();
+updateSrcSpace();
+updateBackupPreview();
 let db=document.getElementById("driveButtons"); db.innerHTML="";
 mounted.forEach(x=>{
 let b=document.createElement("button");
@@ -239,6 +272,8 @@ async function load(which){
     row.appendChild(name);
     list.appendChild(row);
   });
+
+  if (which === "src" || which === "dst") updateBackupPreview();
 }
 
 async function startBackup(){
@@ -267,8 +302,10 @@ async function init(){
 await refreshDrives();
 srcDrive.onfocus=refreshDrives;
 dstDrive.onfocus=refreshDrives;
-srcDrive.onchange=()=>{refreshDrives();S.src.drive=srcDrive.value;S.src.path="";S.src.items=[];load("src")};
-dstDrive.onchange=()=>{refreshDrives();S.dst.drive=dstDrive.value;S.dst.path="";updateDstSpace();load("dst")};
+srcDrive.onchange=()=>{refreshDrives();S.src.drive=srcDrive.value;S.src.path="";S.src.items=[];updateSrcSpace();updateBackupPreview();load("src")};
+dstDrive.onchange=()=>{refreshDrives();S.dst.drive=dstDrive.value;S.dst.path="";updateDstSpace();updateBackupPreview();load("dst")};
+backupName.oninput=updateBackupPreview;
+overwrite.onchange=updateBackupPreview;
 
 load("src"); load("dst"); poll();
 }
