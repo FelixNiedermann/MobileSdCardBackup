@@ -7,13 +7,7 @@ router = APIRouter(prefix="/api", tags=["backup"])
 
 MEDIA_ROOT = Path("/media/admin")
 
-JOB = {
-    "running": False,
-    "log": [],
-    "progress": 0,
-    "result": None,
-    "finished_at": None
-}
+JOB = {"running": False, "log": [], "progress": 0, "result": None, "finished_at": None}
 
 
 def is_mounted(p: Path) -> bool:
@@ -55,13 +49,15 @@ def drives():
         else:
             space = None
             mtime = None
-        drives.append({
-            "id": k,
-            "mounted": mounted,
-            "path": str(v),
-            "mtime": mtime,
-            "space": space,
-        })
+        drives.append(
+            {
+                "id": k,
+                "mounted": mounted,
+                "path": str(v),
+                "mtime": mtime,
+                "space": space,
+            }
+        )
     return {"drives": drives}
 
 
@@ -86,28 +82,26 @@ def list_dir(drive: str, path: str = ""):
                 t = "file"
             else:
                 continue
-            entries.append({
-                "name": e.name,
-                "type": t,
-                "size": st.st_size,
-                "mtime": int(st.st_mtime),
-            })
+            entries.append(
+                {
+                    "name": e.name,
+                    "type": t,
+                    "size": st.st_size,
+                    "mtime": int(st.st_mtime),
+                }
+            )
 
     return {
         "drive": drive,
         "path": path,
-        "entries": sorted(entries, key=lambda x: (x["type"], x["name"].lower()))
+        "entries": sorted(entries, key=lambda x: (x["type"], x["name"].lower())),
     }
 
 
 def run_backup(cfg: dict):
-    JOB.update({
-        "running": True,
-        "log": [],
-        "progress": 0,
-        "result": None,
-        "finished_at": None
-    })
+    JOB.update(
+        {"running": True, "log": [], "progress": 0, "result": None, "finished_at": None}
+    )
 
     try:
         roots = available_drives()
@@ -128,12 +122,13 @@ def run_backup(cfg: dict):
         dst.mkdir(parents=True, exist_ok=True)
 
         rsync = [
-            "rsync", "-a",
+            "rsync",
+            "-a",
             "--info=progress2",
             "--human-readable",
             "--exclude=lost+found",
             "--exclude=.Trash-*",
-            "--exclude=.Spotlight-*"
+            "--exclude=.Spotlight-*",
         ]
 
         if verify:
@@ -156,10 +151,7 @@ def run_backup(cfg: dict):
         progress_re = re.compile(r"(\d+)%")
 
         proc = subprocess.Popen(
-            rsync,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
-            text=True
+            rsync, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
         )
 
         for line in proc.stdout:

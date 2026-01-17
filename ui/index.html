@@ -1,325 +1,473 @@
 <!doctype html>
 <html>
+
 <head>
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MobileNAS</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>MobileNAS</title>
 
-<style>
-:root{
---bg:#f8fafc;--card:#fff;--text:#0f172a;--muted:#64748b;
---line:#e5e7eb;--blue:#2563eb;--green:#16a34a;--red:#dc2626;
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui;background:var(--bg);color:var(--text)}
-header{padding:14px;text-align:center;font-weight:600;background:#fff;border-bottom:1px solid var(--line)}
-main{max-width:900px;margin:auto;padding:12px}
-.card{background:#fff;border-radius:14px;padding:14px;margin-bottom:12px}
-h3{margin:0 0 8px;font-size:14px;color:var(--muted)}
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --card: #fff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #e5e7eb;
+      --blue: #2563eb;
+      --green: #16a34a;
+      --red: #dc2626;
+    }
 
-button{
-padding:10px;border-radius:10px;border:none;font-weight:600;
-background:var(--blue);color:#fff;cursor:pointer
-}
-button:hover{filter:brightness(1.05)}
-button:active{transform:scale(.98)}
-button.secondary{background:#64748b}
-button:disabled{opacity:.5;cursor:not-allowed}
+    * {
+      box-sizing: border-box
+    }
 
-select,input{padding:10px;border-radius:10px;border:1px solid var(--line)}
-.list{border:1px solid var(--line);border-radius:12px;overflow:hidden}
-.row{display:flex;gap:10px;padding:10px;border-bottom:1px solid var(--line)}
-.row:last-child{border-bottom:none}
-.row:hover{background:#f1f5f9}
+    body {
+      margin: 0;
+      font-family: system-ui;
+      background: var(--bg);
+      color: var(--text)
+    }
 
-.breadcrumb{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
-.crumb{padding:4px 8px;border-radius:999px;background:#eef2ff;color:#1e40af;font-size:12px;cursor:pointer}
+    header {
+      padding: 14px;
+      text-align: center;
+      font-weight: 600;
+      background: #fff;
+      border-bottom: 1px solid var(--line)
+    }
 
-.progressbar{height:8px;background:#e5e7eb;border-radius:999px;overflow:hidden}
-.progress{height:8px;background:var(--blue);width:0%}
+    main {
+      max-width: 900px;
+      margin: auto;
+      padding: 12px
+    }
 
-.banner{font-weight:600;margin-bottom:6px}
-.banner.success{color:var(--green)}
-.banner.error{color:var(--red)}
-.banner.warn{color:#b45309}
+    .card {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px;
+      margin-bottom: 12px
+    }
 
-pre{background:#020617;color:#e5e7eb;padding:10px;border-radius:10px;font-size:12px;max-height:200px;overflow:auto}
-.space{margin-top:8px;font-size:12px;color:var(--muted)}
-.space.low{color:#b45309;font-weight:600}
-.qr{display:flex;flex-direction:column;align-items:center;gap:8px}
-.qr img{width:160px;height:160px;border-radius:12px;border:1px solid var(--line);background:#fff}
-</style>
+    h3 {
+      margin: 0 0 8px;
+      font-size: 14px;
+      color: var(--muted)
+    }
+
+    button {
+      padding: 10px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      background: var(--blue);
+      color: #fff;
+      cursor: pointer
+    }
+
+    button:hover {
+      filter: brightness(1.05)
+    }
+
+    button:active {
+      transform: scale(.98)
+    }
+
+    button.secondary {
+      background: #64748b
+    }
+
+    button:disabled {
+      opacity: .5;
+      cursor: not-allowed
+    }
+
+    select,
+    input {
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line)
+    }
+
+    .list {
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      overflow: hidden
+    }
+
+    .row {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      border-bottom: 1px solid var(--line)
+    }
+
+    .row:last-child {
+      border-bottom: none
+    }
+
+    .row:hover {
+      background: #f1f5f9
+    }
+
+    .breadcrumb {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 6px
+    }
+
+    .crumb {
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: #eef2ff;
+      color: #1e40af;
+      font-size: 12px;
+      cursor: pointer
+    }
+
+    .progressbar {
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      overflow: hidden
+    }
+
+    .progress {
+      height: 8px;
+      background: var(--blue);
+      width: 0%
+    }
+
+    .banner {
+      font-weight: 600;
+      margin-bottom: 6px
+    }
+
+    .banner.success {
+      color: var(--green)
+    }
+
+    .banner.error {
+      color: var(--red)
+    }
+
+    .banner.warn {
+      color: #b45309
+    }
+
+    pre {
+      background: #020617;
+      color: #e5e7eb;
+      padding: 10px;
+      border-radius: 10px;
+      font-size: 12px;
+      max-height: 200px;
+      overflow: auto
+    }
+
+    .space {
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted)
+    }
+
+    .space.low {
+      color: #b45309;
+      font-weight: 600
+    }
+
+    .qr {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px
+    }
+
+    .qr img {
+      width: 160px;
+      height: 160px;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      background: #fff
+    }
+  </style>
 </head>
 
 <body>
-<header>📦 MobileNAS Backup</header>
-<main>
+  <header>📦 MobileNAS Backup</header>
+  <main>
 
-<div class="card">
-<h3>Source</h3>
-<select id="srcDrive"></select>
-<div id="srcSpace" class="space"></div>
-<div class="breadcrumb" id="srcCrumb"></div>
-<div class="list" id="srcList"></div>
-</div>
+    <div class="card">
+      <h3>Source</h3>
+      <select id="srcDrive"></select>
+      <div id="srcSpace" class="space"></div>
+      <div class="breadcrumb" id="srcCrumb"></div>
+      <div class="list" id="srcList"></div>
+    </div>
 
-<div class="card">
-<h3>Destination</h3>
-<select id="dstDrive"></select>
-<div id="dstSpace" class="space"></div>
-<div class="breadcrumb" id="dstCrumb"></div>
-<div class="list" id="dstList"></div>
-</div>
+    <div class="card">
+      <h3>Destination</h3>
+      <select id="dstDrive"></select>
+      <div id="dstSpace" class="space"></div>
+      <div class="breadcrumb" id="dstCrumb"></div>
+      <div class="list" id="dstList"></div>
+    </div>
 
-<div class="card">
-<h3>Backup</h3>
-<input id="backupName" placeholder="Backup name">
-<div id="backupPreview" class="space"></div>
-<label><input type="checkbox" id="verify" checked> Verify checksum</label>
-<details>
-<summary>More options</summary>
-<label><input type="checkbox" id="overwrite"> Overwrite existing (danger)</label>
-</details>
-<br>
-<button onclick="startBackup()">Start Backup</button>
-</div>
+    <div class="card">
+      <h3>Backup</h3>
+      <input id="backupName" placeholder="Backup name">
+      <div id="backupPreview" class="space"></div>
+      <label><input type="checkbox" id="verify" checked> Verify checksum</label>
+      <details>
+        <summary>More options</summary>
+        <label><input type="checkbox" id="overwrite"> Overwrite existing (danger)</label>
+      </details>
+      <br>
+      <button onclick="startBackup()">Start Backup</button>
+    </div>
 
-<div class="card">
-<h3>Status</h3>
-<div id="banner" class="banner">Idle</div>
-<div class="progressbar"><div id="progress" class="progress"></div></div>
-<pre id="log"></pre>
-</div>
+    <div class="card">
+      <h3>Status</h3>
+      <div id="banner" class="banner">Idle</div>
+      <div class="progressbar">
+        <div id="progress" class="progress"></div>
+      </div>
+      <pre id="log"></pre>
+    </div>
 
-<div class="card">
-<h3>Drives</h3>
-<div id="driveButtons"></div>
-</div>
+    <div class="card">
+      <h3>Drives</h3>
+      <div id="driveButtons"></div>
+    </div>
 
-<div class="card">
-<h3>Open on phone</h3>
-<div class="qr">
-<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=http%3A%2F%2Fmobile-backup.local" alt="QR code for http://mobile-backup.local">
-<div class="space">http://mobile-backup.local</div>
-</div>
-</div>
+    <div class="card">
+      <h3>Open on phone</h3>
+      <div class="qr">
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=http%3A%2F%2Fmobile-backup.local"
+          alt="QR code for http://mobile-backup.local">
+        <div class="space">http://mobile-backup.local</div>
+      </div>
+    </div>
 
-</main>
+  </main>
 
-<script>
-let S={src:{drive:"",path:"",items:[]},dst:{drive:"",path:""}};
-let lastFinished=null;
-let drivesCache=[];
+  <script>
+    let S = { src: { drive: "", path: "", items: [] }, dst: { drive: "", path: "" } };
+    let lastFinished = null;
+    let drivesCache = [];
 
-async function api(u,m="GET",d=null){
-let r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:d?JSON.stringify(d):null});
-return r.json();
-}
-
-function fmtBytes(n){
-if(n==null) return "";
-let u=["B","KB","MB","GB","TB"],i=0;
-while(n>=1024 && i<u.length-1){n/=1024;i++}
-return `${n.toFixed(n>=10?0:1)} ${u[i]}`;
-}
-
-function updateDstSpace(){
-let d=drivesCache.find(x=>x.id===S.dst.drive);
-if(!d || !d.space){dstSpace.textContent="";dstSpace.className="space";return;}
-let free=d.space.free, total=d.space.total;
-let pct=total?free/total:0;
-let low=pct<0.1 || free<10*1024*1024*1024;
-dstSpace.textContent=`Free ${fmtBytes(free)} of ${fmtBytes(total)}${low?" (low space)":""}`;
-dstSpace.className=low?"space low":"space";
-}
-
-function updateSrcSpace(){
-let d=drivesCache.find(x=>x.id===S.src.drive);
-if(!d || !d.space){srcSpace.textContent="";srcSpace.className="space";return;}
-let free=d.space.free, total=d.space.total;
-let pct=total?free/total:0;
-let low=pct<0.1 || free<10*1024*1024*1024;
-srcSpace.textContent=`Free ${fmtBytes(free)} of ${fmtBytes(total)}${low?" (low space)":""}`;
-srcSpace.className=low?"space low":"space";
-}
-
-function fmtTimestamp(d){
-let pad=n=>String(n).padStart(2,"0");
-return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
-}
-
-function defaultBackupName(){
-let name=S.src.path.split("/").pop()||"backup";
-return name.replace(/\s+/g,"_");
-}
-
-function updateBackupPreview(){
-let name=(backupName.value||defaultBackupName()).replace(/\s+/g,"_");
-let ts=fmtTimestamp(new Date());
-let base=S.dst.path?`/${S.dst.path}`:"";
-let folder=overwrite.checked?(base||"/"):(base?`${base}/`:"/")+`${name}__${ts}`;
-let drive=S.dst.drive?`${S.dst.drive}:`:"";
-backupPreview.textContent=`Saved to ${drive}${folder}`;
-}
-
-function pickNewest(drives, preferPrefix){
-let list=drives.filter(x=>x.mounted);
-if(preferPrefix){
-let pref=list.filter(x=>x.id.startsWith(preferPrefix));
-if(pref.length) list=pref;
-}
-list.sort((a,b)=>(b.mtime||0)-(a.mtime||0));
-return list[0]?.id || "";
-}
-
-function pickByName(drives, needle, excludeNeedle){
-let list=drives.filter(x=>x.mounted);
-let lower=needle.toLowerCase();
-let exclude=excludeNeedle?excludeNeedle.toLowerCase():"";
-let found=list.find(x=>{
-let id=x.id.toLowerCase();
-return id.includes(lower) && (!exclude || !id.includes(exclude));
-});
-return found?.id || "";
-}
-
-function applyDriveOptions(mounted){
-let srcValue=srcDrive.value;
-let dstValue=dstDrive.value;
-srcDrive.innerHTML=dstDrive.innerHTML=mounted.map(x=>`<option>${x.id}</option>`).join("");
-if(mounted.find(x=>x.id===srcValue)) srcDrive.value=srcValue;
-if(mounted.find(x=>x.id===dstValue)) dstDrive.value=dstValue;
-}
-
-async function refreshDrives(){
-let d=await api("/api/drives");
-drivesCache=d.drives;
-let mounted=d.drives.filter(x=>x.mounted);
-applyDriveOptions(mounted);
-
-if(!S.src.drive || !mounted.find(x=>x.id===S.src.drive)){
-S.src.drive=pickByName(mounted,"sd","ssd")||pickNewest(mounted)||srcDrive.value;
-srcDrive.value=S.src.drive;
-}
-if(!S.dst.drive || !mounted.find(x=>x.id===S.dst.drive)){
-S.dst.drive=pickByName(mounted,"ssd")||mounted.find(x=>x.id!==S.src.drive)?.id||dstDrive.value;
-dstDrive.value=S.dst.drive;
-}
-updateDstSpace();
-updateSrcSpace();
-updateBackupPreview();
-let db=document.getElementById("driveButtons"); db.innerHTML="";
-mounted.forEach(x=>{
-let b=document.createElement("button");
-b.innerText="Eject "+x.id;
-b.onclick=()=>api("/api/drive/eject/"+x.id,"POST");
-db.appendChild(b);
-});
-}
-
-function crumbs(el,path,cb){
-el.innerHTML="";
-let parts=path?path.split("/"):[];
-el.appendChild(Object.assign(document.createElement("div"),{className:"crumb",innerText:"root",onclick:()=>cb("")}));
-parts.forEach((p,i)=>{
-el.appendChild(Object.assign(document.createElement("div"),{className:"crumb",innerText:p,onclick:()=>cb(parts.slice(0,i+1).join("/"))}));
-});
-}
-
-async function load(which){
-  let s = S[which];
-  let d = await api(`/api/list?drive=${s.drive}&path=${s.path}`);
-
-  crumbs(
-    document.getElementById(which+"Crumb"),
-    s.path,
-    p => {
-      s.path = p;
-      if (which === "src") s.items = [];
-      load(which);
-    }
-  );
-
-  let list = document.getElementById(which+"List");
-  list.innerHTML = "";
-
-  d.entries.forEach(e => {
-    let p = s.path ? s.path + "/" + e.name : e.name;
-
-    let row = document.createElement("div");
-    row.className = "row";
-    row.style.alignItems = "center";
-
-    // Checkbox (source only)
-    if (which === "src") {
-      let cb = document.createElement("input");
-      cb.type = "checkbox";
-      cb.style.marginRight = "8px";
-      cb.checked = s.items.includes(p);
-      cb.onclick = ev => {
-        ev.stopPropagation();
-        s.items.includes(p)
-          ? s.items = s.items.filter(x => x !== p)
-          : s.items.push(p);
-      };
-      row.appendChild(cb);
+    async function api(u, m = "GET", d = null) {
+      let r = await fetch(u, { method: m, headers: { 'Content-Type': 'application/json' }, body: d ? JSON.stringify(d) : null });
+      return r.json();
     }
 
-    // Name (always visible)
-    let name = document.createElement("div");
-    name.textContent = (e.type === "dir" ? "📁 " : "📄 ") + e.name;
-    name.style.flex = "1";
-    name.style.minWidth = "0";
-    name.style.cursor = e.type === "dir" ? "pointer" : "default";
+    function fmtBytes(n) {
+      if (n == null) return "";
+      let u = ["B", "KB", "MB", "GB", "TB"], i = 0;
+      while (n >= 1024 && i < u.length - 1) { n /= 1024; i++ }
+      return `${n.toFixed(n >= 10 ? 0 : 1)} ${u[i]}`;
+    }
 
-    name.onclick = () => {
-      if (e.type === "dir") {
-        s.path = p;
-        if (which === "src") s.items = [];
-        load(which);
+    function updateDstSpace() {
+      let d = drivesCache.find(x => x.id === S.dst.drive);
+      if (!d || !d.space) { dstSpace.textContent = ""; dstSpace.className = "space"; return; }
+      let free = d.space.free, total = d.space.total;
+      let pct = total ? free / total : 0;
+      let low = pct < 0.1 || free < 10 * 1024 * 1024 * 1024;
+      dstSpace.textContent = `Free ${fmtBytes(free)} of ${fmtBytes(total)}${low ? " (low space)" : ""}`;
+      dstSpace.className = low ? "space low" : "space";
+    }
+
+    function updateSrcSpace() {
+      let d = drivesCache.find(x => x.id === S.src.drive);
+      if (!d || !d.space) { srcSpace.textContent = ""; srcSpace.className = "space"; return; }
+      let free = d.space.free, total = d.space.total;
+      let pct = total ? free / total : 0;
+      let low = pct < 0.1 || free < 10 * 1024 * 1024 * 1024;
+      srcSpace.textContent = `Free ${fmtBytes(free)} of ${fmtBytes(total)}${low ? " (low space)" : ""}`;
+      srcSpace.className = low ? "space low" : "space";
+    }
+
+    function fmtTimestamp(d) {
+      let pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}_${pad(d.getHours())}-${pad(d.getMinutes())}-${pad(d.getSeconds())}`;
+    }
+
+    function defaultBackupName() {
+      let name = S.src.path.split("/").pop() || "backup";
+      return name.replace(/\s+/g, "_");
+    }
+
+    function updateBackupPreview() {
+      let name = (backupName.value || defaultBackupName()).replace(/\s+/g, "_");
+      let ts = fmtTimestamp(new Date());
+      let base = S.dst.path ? `/${S.dst.path}` : "";
+      let folder = overwrite.checked ? (base || "/") : (base ? `${base}/` : "/") + `${name}__${ts}`;
+      let drive = S.dst.drive ? `${S.dst.drive}:` : "";
+      backupPreview.textContent = `Saved to ${drive}${folder}`;
+    }
+
+    function pickNewest(drives, preferPrefix) {
+      let list = drives.filter(x => x.mounted);
+      if (preferPrefix) {
+        let pref = list.filter(x => x.id.startsWith(preferPrefix));
+        if (pref.length) list = pref;
       }
-    };
+      list.sort((a, b) => (b.mtime || 0) - (a.mtime || 0));
+      return list[0]?.id || "";
+    }
 
-    row.appendChild(name);
-    list.appendChild(row);
-  });
+    function pickByName(drives, needle, excludeNeedle) {
+      let list = drives.filter(x => x.mounted);
+      let lower = needle.toLowerCase();
+      let exclude = excludeNeedle ? excludeNeedle.toLowerCase() : "";
+      let found = list.find(x => {
+        let id = x.id.toLowerCase();
+        return id.includes(lower) && (!exclude || !id.includes(exclude));
+      });
+      return found?.id || "";
+    }
 
-  if (which === "src" || which === "dst") updateBackupPreview();
-}
+    function applyDriveOptions(mounted) {
+      let srcValue = srcDrive.value;
+      let dstValue = dstDrive.value;
+      srcDrive.innerHTML = dstDrive.innerHTML = mounted.map(x => `<option>${x.id}</option>`).join("");
+      if (mounted.find(x => x.id === srcValue)) srcDrive.value = srcValue;
+      if (mounted.find(x => x.id === dstValue)) dstDrive.value = dstValue;
+    }
 
-async function startBackup(){
-if(!backupName.value) backupName.value=S.src.path.split("/").pop()||"backup";
-await api("/api/backup","POST",{src:S.src,dst:S.dst,items:S.src.items,backup_name:backupName.value,verify:verify.checked,overwrite:overwrite.checked});
-}
+    async function refreshDrives() {
+      let d = await api("/api/drives");
+      drivesCache = d.drives;
+      let mounted = d.drives.filter(x => x.mounted);
+      applyDriveOptions(mounted);
 
-async function poll(){
-let s=await api("/api/backup/status");
-progress.style.width=(s.progress||0)+"%";
-if(s.running){banner.textContent="Backup running…";banner.className="banner"}
-else if(s.result==="success"){banner.textContent="Backup completed";banner.className="banner success"}
-else if(s.result==="warning"){banner.textContent="Backup completed with warnings";banner.className="banner warn"}
-else if(s.result==="failed"){banner.textContent="Backup failed";banner.className="banner error"}
+      if (!S.src.drive || !mounted.find(x => x.id === S.src.drive)) {
+        S.src.drive = pickByName(mounted, "sd", "ssd") || pickNewest(mounted) || srcDrive.value;
+        srcDrive.value = S.src.drive;
+      }
+      if (!S.dst.drive || !mounted.find(x => x.id === S.dst.drive)) {
+        S.dst.drive = pickByName(mounted, "ssd") || mounted.find(x => x.id !== S.src.drive)?.id || dstDrive.value;
+        dstDrive.value = S.dst.drive;
+      }
+      updateDstSpace();
+      updateSrcSpace();
+      updateBackupPreview();
+      let db = document.getElementById("driveButtons"); db.innerHTML = "";
+      mounted.forEach(x => {
+        let b = document.createElement("button");
+        b.innerText = "Eject " + x.id;
+        b.onclick = () => api("/api/drive/eject/" + x.id, "POST");
+        db.appendChild(b);
+      });
+    }
 
-if(s.finished_at && s.finished_at!==lastFinished){
-lastFinished=s.finished_at;
-load("dst");
-}
+    function crumbs(el, path, cb) {
+      el.innerHTML = "";
+      let parts = path ? path.split("/") : [];
+      el.appendChild(Object.assign(document.createElement("div"), { className: "crumb", innerText: "root", onclick: () => cb("") }));
+      parts.forEach((p, i) => {
+        el.appendChild(Object.assign(document.createElement("div"), { className: "crumb", innerText: p, onclick: () => cb(parts.slice(0, i + 1).join("/")) }));
+      });
+    }
 
-log.textContent=s.log.join("");
-setTimeout(poll,1000);
-}
+    async function load(which) {
+      let s = S[which];
+      let d = await api(`/api/list?drive=${s.drive}&path=${s.path}`);
 
-async function init(){
-await refreshDrives();
-srcDrive.onfocus=refreshDrives;
-dstDrive.onfocus=refreshDrives;
-srcDrive.onchange=()=>{refreshDrives();S.src.drive=srcDrive.value;S.src.path="";S.src.items=[];updateSrcSpace();updateBackupPreview();load("src")};
-dstDrive.onchange=()=>{refreshDrives();S.dst.drive=dstDrive.value;S.dst.path="";updateDstSpace();updateBackupPreview();load("dst")};
-backupName.oninput=updateBackupPreview;
-overwrite.onchange=updateBackupPreview;
+      crumbs(
+        document.getElementById(which + "Crumb"),
+        s.path,
+        p => {
+          s.path = p;
+          if (which === "src") s.items = [];
+          load(which);
+        }
+      );
 
-load("src"); load("dst"); poll();
-}
-init();
-</script>
+      let list = document.getElementById(which + "List");
+      list.innerHTML = "";
+
+      d.entries.forEach(e => {
+        let p = s.path ? s.path + "/" + e.name : e.name;
+
+        let row = document.createElement("div");
+        row.className = "row";
+        row.style.alignItems = "center";
+
+        // Checkbox (source only)
+        if (which === "src") {
+          let cb = document.createElement("input");
+          cb.type = "checkbox";
+          cb.style.marginRight = "8px";
+          cb.checked = s.items.includes(p);
+          cb.onclick = ev => {
+            ev.stopPropagation();
+            s.items.includes(p)
+              ? s.items = s.items.filter(x => x !== p)
+              : s.items.push(p);
+          };
+          row.appendChild(cb);
+        }
+
+        // Name (always visible)
+        let name = document.createElement("div");
+        name.textContent = (e.type === "dir" ? "📁 " : "📄 ") + e.name;
+        name.style.flex = "1";
+        name.style.minWidth = "0";
+        name.style.cursor = e.type === "dir" ? "pointer" : "default";
+
+        name.onclick = () => {
+          if (e.type === "dir") {
+            s.path = p;
+            if (which === "src") s.items = [];
+            load(which);
+          }
+        };
+
+        row.appendChild(name);
+        list.appendChild(row);
+      });
+
+      if (which === "src" || which === "dst") updateBackupPreview();
+    }
+
+    async function startBackup() {
+      if (!backupName.value) backupName.value = S.src.path.split("/").pop() || "backup";
+      await api("/api/backup", "POST", { src: S.src, dst: S.dst, items: S.src.items, backup_name: backupName.value, verify: verify.checked, overwrite: overwrite.checked });
+    }
+
+    async function poll() {
+      let s = await api("/api/backup/status");
+      progress.style.width = (s.progress || 0) + "%";
+      if (s.running) { banner.textContent = "Backup running…"; banner.className = "banner" }
+      else if (s.result === "success") { banner.textContent = "Backup completed"; banner.className = "banner success" }
+      else if (s.result === "warning") { banner.textContent = "Backup completed with warnings"; banner.className = "banner warn" }
+      else if (s.result === "failed") { banner.textContent = "Backup failed"; banner.className = "banner error" }
+
+      if (s.finished_at && s.finished_at !== lastFinished) {
+        lastFinished = s.finished_at;
+        load("dst");
+      }
+
+      log.textContent = s.log.join("");
+      setTimeout(poll, 1000);
+    }
+
+    async function init() {
+      await refreshDrives();
+      srcDrive.onfocus = refreshDrives;
+      dstDrive.onfocus = refreshDrives;
+      srcDrive.onchange = () => { refreshDrives(); S.src.drive = srcDrive.value; S.src.path = ""; S.src.items = []; updateSrcSpace(); updateBackupPreview(); load("src") };
+      dstDrive.onchange = () => { refreshDrives(); S.dst.drive = dstDrive.value; S.dst.path = ""; updateDstSpace(); updateBackupPreview(); load("dst") };
+      backupName.oninput = updateBackupPreview;
+      overwrite.onchange = updateBackupPreview;
+
+      load("src"); load("dst"); poll();
+    }
+    init();
+  </script>
 </body>
+
 </html>
