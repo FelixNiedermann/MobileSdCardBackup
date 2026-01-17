@@ -43,6 +43,8 @@ select,input{padding:10px;border-radius:10px;border:1px solid var(--line)}
 .banner.warn{color:#b45309}
 
 pre{background:#020617;color:#e5e7eb;padding:10px;border-radius:10px;font-size:12px;max-height:200px;overflow:auto}
+.space{margin-top:8px;font-size:12px;color:var(--muted)}
+.space.low{color:#b45309;font-weight:600}
 </style>
 </head>
 
@@ -60,6 +62,7 @@ pre{background:#020617;color:#e5e7eb;padding:10px;border-radius:10px;font-size:1
 <div class="card">
 <h3>Destination</h3>
 <select id="dstDrive"></select>
+<div id="dstSpace" class="space"></div>
 <div class="breadcrumb" id="dstCrumb"></div>
 <div class="list" id="dstList"></div>
 </div>
@@ -93,10 +96,81 @@ pre{background:#020617;color:#e5e7eb;padding:10px;border-radius:10px;font-size:1
 <script>
 let S={src:{drive:"",path:"",items:[]},dst:{drive:"",path:""}};
 let lastFinished=null;
+let drivesCache=[];
 
 async function api(u,m="GET",d=null){
 let r=await fetch(u,{method:m,headers:{'Content-Type':'application/json'},body:d?JSON.stringify(d):null});
 return r.json();
+}
+
+function fmtBytes(n){
+if(n==null) return "";
+let u=["B","KB","MB","GB","TB"],i=0;
+while(n>=1024 && i<u.length-1){n/=1024;i++}
+return `${n.toFixed(n>=10?0:1)} ${u[i]}`;
+}
+
+function updateDstSpace(){
+let d=drivesCache.find(x=>x.id===S.dst.drive);
+if(!d || !d.space){dstSpace.textContent="";dstSpace.className="space";return;}
+let free=d.space.free, total=d.space.total;
+let pct=total?free/total:0;
+let low=pct<0.1 || free<10*1024*1024*1024;
+dstSpace.textContent=`Free ${fmtBytes(free)} of ${fmtBytes(total)}${low?" (low space)":""}`;
+dstSpace.className=low?"space low":"space";
+}
+
+function pickNewest(drives, preferPrefix){
+let list=drives.filter(x=>x.mounted);
+if(preferPrefix){
+let pref=list.filter(x=>x.id.startsWith(preferPrefix));
+if(pref.length) list=pref;
+}
+list.sort((a,b)=>(b.mtime||0)-(a.mtime||0));
+return list[0]?.id || "";
+}
+
+function pickByName(drives, needle, excludeNeedle){
+let list=drives.filter(x=>x.mounted);
+let lower=needle.toLowerCase();
+let exclude=excludeNeedle?excludeNeedle.toLowerCase():"";
+let found=list.find(x=>{
+let id=x.id.toLowerCase();
+return id.includes(lower) && (!exclude || !id.includes(exclude));
+});
+return found?.id || "";
+}
+
+function applyDriveOptions(mounted){
+let srcValue=srcDrive.value;
+let dstValue=dstDrive.value;
+srcDrive.innerHTML=dstDrive.innerHTML=mounted.map(x=>`<option>${x.id}</option>`).join("");
+if(mounted.find(x=>x.id===srcValue)) srcDrive.value=srcValue;
+if(mounted.find(x=>x.id===dstValue)) dstDrive.value=dstValue;
+}
+
+async function refreshDrives(){
+let d=await api("/api/drives");
+drivesCache=d.drives;
+let mounted=d.drives.filter(x=>x.mounted);
+applyDriveOptions(mounted);
+
+if(!S.src.drive || !mounted.find(x=>x.id===S.src.drive)){
+S.src.drive=pickByName(mounted,"sd","ssd")||pickNewest(mounted)||srcDrive.value;
+srcDrive.value=S.src.drive;
+}
+if(!S.dst.drive || !mounted.find(x=>x.id===S.dst.drive)){
+S.dst.drive=pickByName(mounted,"ssd")||mounted.find(x=>x.id!==S.src.drive)?.id||dstDrive.value;
+dstDrive.value=S.dst.drive;
+}
+updateDstSpace();
+let db=document.getElementById("driveButtons"); db.innerHTML="";
+mounted.forEach(x=>{
+let b=document.createElement("button");
+b.innerText="Eject "+x.id;
+b.onclick=()=>api("/api/drive/eject/"+x.id,"POST");
+db.appendChild(b);
+});
 }
 
 function crumbs(el,path,cb){
@@ -190,20 +264,11 @@ setTimeout(poll,1000);
 }
 
 async function init(){
-let d=await api("/api/drives");
-let mounted=d.drives.filter(x=>x.mounted);
-srcDrive.innerHTML=dstDrive.innerHTML=mounted.map(x=>`<option>${x.id}</option>`).join("");
-S.src.drive=srcDrive.value; S.dst.drive=dstDrive.value;
-srcDrive.onchange=()=>{S.src.drive=srcDrive.value;S.src.path="";S.src.items=[];load("src")};
-dstDrive.onchange=()=>{S.dst.drive=dstDrive.value;S.dst.path="";load("dst")};
-
-let db=document.getElementById("driveButtons"); db.innerHTML="";
-mounted.forEach(x=>{
-let b=document.createElement("button");
-b.innerText="Eject "+x.id;
-b.onclick=()=>api("/api/drive/eject/"+x.id,"POST");
-db.appendChild(b);
-});
+await refreshDrives();
+srcDrive.onfocus=refreshDrives;
+dstDrive.onfocus=refreshDrives;
+srcDrive.onchange=()=>{refreshDrives();S.src.drive=srcDrive.value;S.src.path="";S.src.items=[];load("src")};
+dstDrive.onchange=()=>{refreshDrives();S.dst.drive=dstDrive.value;S.dst.path="";updateDstSpace();load("dst")};
 
 load("src"); load("dst"); poll();
 }

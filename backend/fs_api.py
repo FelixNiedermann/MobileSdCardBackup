@@ -1,15 +1,11 @@
 from __future__ import annotations
-import os, stat, subprocess, time, re
+import os, stat, subprocess, time, re, shutil
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 
 router = APIRouter(prefix="/api", tags=["backup"])
 
-DRIVE_ROOTS = {
-    "sd": Path("/mnt/sd"),
-    "ssd1": Path("/mnt/ssd1"),
-    "ssd2": Path("/mnt/ssd2"),
-}
+MEDIA_ROOT = Path("/media/admin")
 
 JOB = {
     "running": False,
@@ -32,18 +28,41 @@ def safe_join(root: Path, rel: str) -> Path:
     return p
 
 
+def list_media_drives() -> dict[str, Path]:
+    drives = {}
+    if not MEDIA_ROOT.exists():
+        return drives
+    for p in MEDIA_ROOT.iterdir():
+        if p.is_dir():
+            drives[p.name] = p
+    return drives
+
+
 def available_drives():
-    return {k: v for k, v in DRIVE_ROOTS.items() if is_mounted(v)}
+    return {k: v for k, v in list_media_drives().items() if is_mounted(v)}
 
 
 @router.get("/drives")
 def drives():
-    return {
-        "drives": [
-            {"id": k, "mounted": is_mounted(v), "path": str(v)}
-            for k, v in DRIVE_ROOTS.items()
-        ]
-    }
+    drives = []
+    for k, v in list_media_drives().items():
+        mounted = is_mounted(v)
+        if mounted:
+            st = v.stat()
+            usage = shutil.disk_usage(v)
+            space = {"free": usage.free, "total": usage.total}
+            mtime = int(st.st_mtime)
+        else:
+            space = None
+            mtime = None
+        drives.append({
+            "id": k,
+            "mounted": mounted,
+            "path": str(v),
+            "mtime": mtime,
+            "space": space,
+        })
+    return {"drives": drives}
 
 
 @router.get("/list")
