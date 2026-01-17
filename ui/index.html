@@ -576,9 +576,13 @@
         b.innerText = "Eject " + x.id;
         b.onclick = async () => {
           await api("/api/drive/eject/" + x.id, "POST");
-          await refreshDrives();
+          if (S.src.drive === x.id) { S.src.drive = ""; S.src.path = ""; S.src.items = []; }
+          if (S.dst.drive === x.id) { S.dst.drive = ""; S.dst.path = ""; }
+          updateBackupButton();
           load("src");
           load("dst");
+          setTimeout(refreshDrives, 500);
+          setTimeout(refreshDrives, 2000);
         };
         db.appendChild(b);
       });
