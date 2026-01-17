@@ -292,7 +292,7 @@
     <button id="startBackupBtn" onclick="startBackup()">Start Backup</button>
   </div>
 
-  <div class="card hidden" id="settingsCard">
+  <div class="card" id="settingsCard">
     <h3>Settings</h3>
     <label><input type="checkbox" id="autoBackup"> Auto backup when SD + SSD connected</label>
     <div class="space">Creates full SD backup with prefix <code>auto_</code>.</div>
@@ -539,10 +539,9 @@
         vid.preload = "metadata";
         previewBody.appendChild(vid);
       } else if (rawExt.includes(ext)) {
-        let msg = document.createElement("div");
-        msg.className = "space";
-        msg.textContent = "RAW preview not supported.";
-        previewBody.appendChild(msg);
+        let img = document.createElement("img");
+        img.src = fileUrl(drive, path);
+        previewBody.appendChild(img);
       } else {
         let msg = document.createElement("div");
         msg.className = "space";

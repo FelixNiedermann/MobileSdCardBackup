@@ -1,8 +1,8 @@
 from __future__ import annotations
 import os, stat, subprocess, time, re, shutil, json, threading, mimetypes, hashlib
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, BackgroundTasks
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, HTTPException, BackgroundTasks, Request
+from fastapi.responses import FileResponse, StreamingResponse
 from PIL import Image
 import rawpy
 
@@ -204,8 +204,45 @@ def get_size(cfg: dict):
     return {"bytes": total}
 
 
+def _file_stream_response(target: Path, media_type: str, request: Request):
+    range_header = request.headers.get("range")
+    if not range_header:
+        return FileResponse(target, media_type=media_type)
+
+    size = target.stat().st_size
+    units, _, rng = range_header.partition("=")
+    if units != "bytes" or not rng:
+        raise HTTPException(416, "Invalid range")
+    start_s, _, end_s = rng.partition("-")
+    try:
+        start = int(start_s) if start_s else 0
+        end = int(end_s) if end_s else size - 1
+    except ValueError:
+        raise HTTPException(416, "Invalid range")
+    if start > end or end >= size:
+        raise HTTPException(416, "Range not satisfiable")
+
+    def iterfile():
+        with target.open("rb") as f:
+            f.seek(start)
+            remaining = end - start + 1
+            while remaining > 0:
+                chunk = f.read(min(1024 * 512, remaining))
+                if not chunk:
+                    break
+                remaining -= len(chunk)
+                yield chunk
+
+    headers = {
+        "Content-Range": f"bytes {start}-{end}/{size}",
+        "Accept-Ranges": "bytes",
+        "Content-Length": str(end - start + 1),
+    }
+    return StreamingResponse(iterfile(), status_code=206, media_type=media_type, headers=headers)
+
+
 @router.get("/file")
-def get_file(drive: str, path: str):
+def get_file(request: Request, drive: str, path: str):
     roots = available_drives()
     if drive not in roots:
         raise HTTPException(404)
@@ -217,9 +254,9 @@ def get_file(drive: str, path: str):
             preview = _build_raw_preview(target)
         except Exception:
             raise HTTPException(500, "RAW preview failed")
-        return FileResponse(preview, media_type="image/jpeg")
+        return _file_stream_response(preview, "image/jpeg", request)
     media_type, _ = mimetypes.guess_type(str(target))
-    return FileResponse(target, media_type=media_type)
+    return _file_stream_response(target, media_type or "application/octet-stream", request)
 
 
 def run_backup(cfg: dict):
