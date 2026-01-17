@@ -519,6 +519,7 @@
       let ext = (path.split(".").pop() || "").toLowerCase();
       let imgExt = ["jpg", "jpeg", "png", "gif", "webp"];
       let vidExt = ["mp4", "mov", "m4v", "webm"];
+      let rawExt = ["arw", "cr2", "cr3", "nef", "raf", "rw2", "dng"];
 
       previewTitle.textContent = path;
       previewBody.innerHTML = "";
@@ -528,16 +529,33 @@
         previewBody.appendChild(img);
       } else if (vidExt.includes(ext)) {
         let vid = document.createElement("video");
-        vid.src = fileUrl(drive, path);
+        let src = document.createElement("source");
+        src.src = fileUrl(drive, path);
+        if (ext === "mp4" || ext === "m4v") src.type = "video/mp4";
+        if (ext === "mov") src.type = "video/quicktime";
+        vid.appendChild(src);
         vid.controls = true;
         vid.playsInline = true;
+        vid.preload = "metadata";
         previewBody.appendChild(vid);
+      } else if (rawExt.includes(ext)) {
+        let msg = document.createElement("div");
+        msg.className = "space";
+        msg.textContent = "RAW preview not supported.";
+        previewBody.appendChild(msg);
       } else {
         let msg = document.createElement("div");
         msg.className = "space";
         msg.textContent = "No preview available for this file type.";
         previewBody.appendChild(msg);
       }
+      let dl = document.createElement("a");
+      dl.href = fileUrl(drive, path);
+      dl.textContent = "Download file";
+      dl.className = "space";
+      dl.target = "_blank";
+      dl.rel = "noopener";
+      previewBody.appendChild(dl);
       preview.classList.add("show");
     }
 
@@ -704,6 +722,9 @@
         lastFinished = s.finished_at;
         load("dst");
       }
+
+      let btns = document.querySelectorAll("#driveButtons button");
+      btns.forEach(b => b.disabled = !!s.running);
 
       log.textContent = s.log.join("");
       setTimeout(poll, 1000);

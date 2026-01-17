@@ -1,14 +1,28 @@
 from __future__ import annotations
-import os, stat, subprocess, time, re, shutil, json, threading, mimetypes
+import os, stat, subprocess, time, re, shutil, json, threading, mimetypes, hashlib
 from pathlib import Path
 from fastapi import APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import FileResponse
+from PIL import Image
+import rawpy
 
 router = APIRouter(prefix="/api", tags=["backup"])
 
 MEDIA_ROOT = Path("/media/admin")
 SETTINGS_PATH = Path(__file__).resolve().parent.parent / "settings.json"
 DEFAULT_SETTINGS = {"auto_backup": False, "last_auto": None, "auto_latched": None}
+PREVIEW_DIR = Path(__file__).resolve().parent.parent / "cache" / "previews"
+
+RAW_EXT = {".arw", ".cr2", ".cr3", ".nef", ".raf", ".rw2", ".dng"}
+
+mimetypes.add_type("video/mp4", ".mp4")
+mimetypes.add_type("video/mp4", ".m4v")
+mimetypes.add_type("video/quicktime", ".mov")
+mimetypes.add_type("image/jpeg", ".jpg")
+mimetypes.add_type("image/jpeg", ".jpeg")
+mimetypes.add_type("image/png", ".png")
+mimetypes.add_type("image/gif", ".gif")
+mimetypes.add_type("image/webp", ".webp")
 
 JOB = {"running": False, "log": [], "progress": 0, "result": None, "finished_at": None}
 
@@ -137,6 +151,27 @@ def list_dir(drive: str, path: str = ""):
     }
 
 
+def _raw_preview_path(target: Path) -> Path:
+    st = target.stat()
+    key = f"{target}:{st.st_mtime_ns}:{st.st_size}"
+    digest = hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+    name = f"{target.stem}.{digest}.jpg"
+    return PREVIEW_DIR / name
+
+
+def _build_raw_preview(target: Path) -> Path:
+    PREVIEW_DIR.mkdir(parents=True, exist_ok=True)
+    dst = _raw_preview_path(target)
+    if dst.exists():
+        return dst
+    with rawpy.imread(str(target)) as raw:
+        rgb = raw.postprocess(use_camera_wb=True, no_auto_bright=True, half_size=True)
+    img = Image.fromarray(rgb)
+    img.thumbnail((2000, 2000), Image.LANCZOS)
+    img.save(dst, "JPEG", quality=85, optimize=True)
+    return dst
+
+
 def _calc_size(path: Path) -> int:
     try:
         if path.is_file():
@@ -177,6 +212,12 @@ def get_file(drive: str, path: str):
     target = safe_join(roots[drive], path)
     if not target.exists() or not target.is_file():
         raise HTTPException(404)
+    if target.suffix.lower() in RAW_EXT:
+        try:
+            preview = _build_raw_preview(target)
+        except Exception:
+            raise HTTPException(500, "RAW preview failed")
+        return FileResponse(preview, media_type="image/jpeg")
     media_type, _ = mimetypes.guess_type(str(target))
     return FileResponse(target, media_type=media_type)
 
