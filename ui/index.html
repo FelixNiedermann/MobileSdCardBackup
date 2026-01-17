@@ -45,6 +45,8 @@ select,input{padding:10px;border-radius:10px;border:1px solid var(--line)}
 pre{background:#020617;color:#e5e7eb;padding:10px;border-radius:10px;font-size:12px;max-height:200px;overflow:auto}
 .space{margin-top:8px;font-size:12px;color:var(--muted)}
 .space.low{color:#b45309;font-weight:600}
+.qr{display:flex;flex-direction:column;align-items:center;gap:8px}
+.qr img{width:160px;height:160px;border-radius:12px;border:1px solid var(--line);background:#fff}
 </style>
 </head>
 
@@ -91,6 +93,14 @@ pre{background:#020617;color:#e5e7eb;padding:10px;border-radius:10px;font-size:1
 <div class="card">
 <h3>Drives</h3>
 <div id="driveButtons"></div>
+</div>
+
+<div class="card">
+<h3>Open on phone</h3>
+<div class="qr">
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=http%3A%2F%2Fmobile-backup.local" alt="QR code for http://mobile-backup.local">
+<div class="space">http://mobile-backup.local</div>
+</div>
 </div>
 
 </main>
