@@ -548,13 +548,6 @@
         msg.textContent = "No preview available for this file type.";
         previewBody.appendChild(msg);
       }
-      let dl = document.createElement("a");
-      dl.href = fileUrl(drive, path);
-      dl.textContent = "Download file";
-      dl.className = "space";
-      dl.target = "_blank";
-      dl.rel = "noopener";
-      previewBody.appendChild(dl);
       preview.classList.add("show");
     }
 

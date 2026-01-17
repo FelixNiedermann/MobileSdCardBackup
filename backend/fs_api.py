@@ -263,6 +263,7 @@ def run_backup(cfg: dict):
     JOB.update(
         {"running": True, "log": [], "progress": 0, "result": None, "finished_at": None}
     )
+    JOB["started_at"] = int(time.time())
 
     try:
         roots = available_drives()
@@ -286,7 +287,8 @@ def run_backup(cfg: dict):
         rsync = [
             "rsync",
             "-a",
-            "--info=progress2",
+            "--info=progress2,flist2",
+            "--outbuf=L",
             "--human-readable",
             "--exclude=lost+found",
             "--exclude=.Trash-*",
@@ -312,6 +314,7 @@ def run_backup(cfg: dict):
 
         progress_re = re.compile(r"(\d+)%")
 
+        JOB["log"].append("Preparing file list…\n")
         proc = subprocess.Popen(
             rsync,
             stdout=subprocess.PIPE,
