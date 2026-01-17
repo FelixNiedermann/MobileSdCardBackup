@@ -33,7 +33,19 @@
       text-align: center;
       font-weight: 600;
       background: #fff;
-      border-bottom: 1px solid var(--line)
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px
+    }
+    header button {
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--text);
+      font-weight: 600
     }
 
     main {
@@ -199,7 +211,8 @@
       align-items: center;
       justify-content: center;
       background: rgba(2, 6, 23, .6);
-      padding: 20px
+      padding: 20px;
+      z-index: 50
     }
 
     .preview.show {
@@ -238,11 +251,15 @@
       max-height: 70vh;
       border-radius: 12px
     }
+    .hidden{display:none}
   </style>
 </head>
 
 <body>
-  <header>📦 MobileNAS Backup</header>
+  <header>
+    📦 MobileNAS Backup
+    <button id="settingsToggle" class="secondary">Settings</button>
+  </header>
   <main>
 
     <div class="card">
@@ -275,7 +292,7 @@
     <button id="startBackupBtn" onclick="startBackup()">Start Backup</button>
   </div>
 
-  <div class="card">
+  <div class="card hidden" id="settingsCard">
     <h3>Settings</h3>
     <label><input type="checkbox" id="autoBackup"> Auto backup when SD + SSD connected</label>
     <div class="space">Creates full SD backup with prefix <code>auto_</code>.</div>
@@ -331,6 +348,8 @@
     const preview = document.getElementById("preview");
     const previewTitle = document.getElementById("previewTitle");
     const previewBody = document.getElementById("previewBody");
+    const settingsToggle = document.getElementById("settingsToggle");
+    const settingsCard = document.getElementById("settingsCard");
     const banner = document.getElementById("banner");
     const progress = document.getElementById("progress");
     const log = document.getElementById("log");
@@ -630,13 +649,13 @@
         }
 
         // Name (always visible)
-        let name = document.createElement("div");
-        name.textContent = (e.type === "dir" ? "📁 " : "📄 ") + e.name;
-        name.style.flex = "1";
-        name.style.minWidth = "0";
-        name.style.cursor = e.type === "dir" ? "pointer" : "default";
+      let name = document.createElement("div");
+      name.textContent = (e.type === "dir" ? "📁 " : "📄 ") + e.name;
+      name.style.flex = "1";
+      name.style.minWidth = "0";
+      name.style.cursor = "pointer";
 
-      name.onclick = () => {
+      let open = () => {
         if (e.type === "dir") {
           s.path = p;
           if (which === "src") s.items = [];
@@ -645,6 +664,9 @@
           openPreview(s.drive, p);
         }
       };
+
+      name.onclick = open;
+      row.onclick = open;
 
         row.appendChild(name);
         list.appendChild(row);
@@ -686,6 +708,7 @@
     async function init() {
       await refreshDrives();
       await loadSettings();
+      settingsToggle.onclick = () => settingsCard.classList.toggle("hidden");
       srcDrive.onfocus = refreshDrives;
       dstDrive.onfocus = refreshDrives;
       srcDrive.onchange = () => { refreshDrives(); S.src.drive = srcDrive.value; S.src.path = ""; S.src.items = []; updateSrcSpace(); updateBackupPreview(); scheduleRequiredSpace(); load("src") };
