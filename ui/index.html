@@ -191,6 +191,53 @@
       border: 1px solid var(--line);
       background: #fff
     }
+
+    .preview {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(2, 6, 23, .6);
+      padding: 20px
+    }
+
+    .preview.show {
+      display: flex
+    }
+
+    .preview-content {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 92vw;
+      max-height: 90vh;
+      width: 720px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px
+    }
+
+    .preview-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--muted)
+    }
+
+    .preview-body {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 200px
+    }
+
+    .preview-body img,
+    .preview-body video {
+      max-width: 100%;
+      max-height: 70vh;
+      border-radius: 12px
+    }
   </style>
 </head>
 
@@ -214,22 +261,29 @@
       <div class="list" id="dstList"></div>
     </div>
 
-    <div class="card">
-      <h3>Backup</h3>
-      <input id="backupName" placeholder="Backup name">
-      <div id="backupPreview" class="space"></div>
-      <label><input type="checkbox" id="verify" checked> Verify checksum</label>
-      <details>
+  <div class="card">
+    <h3>Backup</h3>
+    <input id="backupName" placeholder="Backup name">
+    <div id="backupPreview" class="space"></div>
+    <div id="spaceCheck" class="space"></div>
+    <label><input type="checkbox" id="verify" checked> Verify checksum</label>
+    <details>
         <summary>More options</summary>
         <label><input type="checkbox" id="overwrite"> Overwrite existing (danger)</label>
       </details>
       <br>
-      <button onclick="startBackup()">Start Backup</button>
-    </div>
+    <button id="startBackupBtn" onclick="startBackup()">Start Backup</button>
+  </div>
 
-    <div class="card">
-      <h3>Status</h3>
-      <div id="banner" class="banner">Idle</div>
+  <div class="card">
+    <h3>Settings</h3>
+    <label><input type="checkbox" id="autoBackup"> Auto backup when SD + SSD connected</label>
+    <div class="space">Creates full SD backup with prefix <code>auto_</code>.</div>
+  </div>
+
+  <div class="card">
+    <h3>Status</h3>
+    <div id="banner" class="banner">Idle</div>
       <div class="progressbar">
         <div id="progress" class="progress"></div>
       </div>
@@ -252,14 +306,33 @@
 
   </main>
 
+  <div id="preview" class="preview" onclick="closePreview()">
+    <div class="preview-content" onclick="event.stopPropagation()">
+      <div id="previewTitle" class="preview-title"></div>
+      <div id="previewBody" class="preview-body"></div>
+      <button class="secondary" onclick="closePreview()">Close</button>
+    </div>
+  </div>
+
   <script>
     let S = { src: { drive: "", path: "", items: [] }, dst: { drive: "", path: "" } };
     let lastFinished = null;
     let drivesCache = [];
+    let sizeRequired = null;
+    let sizeTimer = null;
 
     async function api(u, m = "GET", d = null) {
       let r = await fetch(u, { method: m, headers: { 'Content-Type': 'application/json' }, body: d ? JSON.stringify(d) : null });
       return r.json();
+    }
+
+    async function loadSettings() {
+      let s = await api("/api/settings");
+      autoBackup.checked = !!s.auto_backup;
+    }
+
+    async function saveSettings() {
+      await api("/api/settings", "POST", { auto_backup: autoBackup.checked });
     }
 
     function fmtBytes(n) {
@@ -308,6 +381,55 @@
       backupPreview.textContent = `Saved to ${drive}${folder}`;
     }
 
+    async function updateRequiredSpace() {
+      if (!S.src.drive) {
+        sizeRequired = null;
+        updateBackupButton();
+        return;
+      }
+      let paths = S.src.items.length ? S.src.items : [S.src.path || ""];
+      let r = await api("/api/size", "POST", { drive: S.src.drive, paths });
+      sizeRequired = r.bytes || 0;
+      updateBackupButton();
+    }
+
+    function scheduleRequiredSpace() {
+      if (sizeTimer) clearTimeout(sizeTimer);
+      sizeTimer = setTimeout(updateRequiredSpace, 300);
+    }
+
+    function updateBackupButton() {
+      let ok = true;
+      let msg = "";
+      if (!S.src.drive || !S.dst.drive) {
+        ok = false;
+        msg = "Select source and destination drives.";
+      }
+      let dst = drivesCache.find(x => x.id === S.dst.drive);
+      if (!dst || !dst.space) {
+        ok = false;
+        msg = "Destination not mounted.";
+      }
+      if (sizeRequired != null && dst && dst.space) {
+        let free = dst.space.free;
+        if (free < sizeRequired) {
+          ok = false;
+          msg = `Not enough space. Need ${fmtBytes(sizeRequired)}, free ${fmtBytes(free)}.`;
+        }
+      }
+      startBackupBtn.disabled = !ok;
+      if (msg) {
+        spaceCheck.textContent = msg;
+        spaceCheck.className = msg.startsWith("Not enough") ? "space low" : "space";
+      } else if (sizeRequired != null) {
+        spaceCheck.textContent = `Estimated size ${fmtBytes(sizeRequired)}.`;
+        spaceCheck.className = "space";
+      } else {
+        spaceCheck.textContent = "";
+        spaceCheck.className = "space";
+      }
+    }
+
     function pickNewest(drives, preferPrefix) {
       let list = drives.filter(x => x.mounted);
       if (preferPrefix) {
@@ -337,6 +459,41 @@
       if (mounted.find(x => x.id === dstValue)) dstDrive.value = dstValue;
     }
 
+    function fileUrl(drive, path) {
+      return `/api/file?drive=${encodeURIComponent(drive)}&path=${encodeURIComponent(path)}`;
+    }
+
+    function openPreview(drive, path) {
+      let ext = (path.split(".").pop() || "").toLowerCase();
+      let imgExt = ["jpg", "jpeg", "png", "gif", "webp"];
+      let vidExt = ["mp4", "mov", "m4v", "webm"];
+
+      previewTitle.textContent = path;
+      previewBody.innerHTML = "";
+      if (imgExt.includes(ext)) {
+        let img = document.createElement("img");
+        img.src = fileUrl(drive, path);
+        previewBody.appendChild(img);
+      } else if (vidExt.includes(ext)) {
+        let vid = document.createElement("video");
+        vid.src = fileUrl(drive, path);
+        vid.controls = true;
+        vid.playsInline = true;
+        previewBody.appendChild(vid);
+      } else {
+        let msg = document.createElement("div");
+        msg.className = "space";
+        msg.textContent = "No preview available for this file type.";
+        previewBody.appendChild(msg);
+      }
+      preview.classList.add("show");
+    }
+
+    function closePreview() {
+      preview.classList.remove("show");
+      previewBody.innerHTML = "";
+    }
+
     async function refreshDrives() {
       let d = await api("/api/drives");
       drivesCache = d.drives;
@@ -354,6 +511,8 @@
       updateDstSpace();
       updateSrcSpace();
       updateBackupPreview();
+      updateBackupButton();
+      scheduleRequiredSpace();
       let db = document.getElementById("driveButtons"); db.innerHTML = "";
       mounted.forEach(x => {
         let b = document.createElement("button");
@@ -402,12 +561,13 @@
           cb.type = "checkbox";
           cb.style.marginRight = "8px";
           cb.checked = s.items.includes(p);
-          cb.onclick = ev => {
-            ev.stopPropagation();
-            s.items.includes(p)
-              ? s.items = s.items.filter(x => x !== p)
-              : s.items.push(p);
-          };
+      cb.onclick = ev => {
+        ev.stopPropagation();
+        s.items.includes(p)
+          ? s.items = s.items.filter(x => x !== p)
+          : s.items.push(p);
+        scheduleRequiredSpace();
+      };
           row.appendChild(cb);
         }
 
@@ -418,19 +578,22 @@
         name.style.minWidth = "0";
         name.style.cursor = e.type === "dir" ? "pointer" : "default";
 
-        name.onclick = () => {
-          if (e.type === "dir") {
-            s.path = p;
-            if (which === "src") s.items = [];
-            load(which);
-          }
-        };
+      name.onclick = () => {
+        if (e.type === "dir") {
+          s.path = p;
+          if (which === "src") s.items = [];
+          load(which);
+        } else {
+          openPreview(s.drive, p);
+        }
+      };
 
         row.appendChild(name);
         list.appendChild(row);
       });
 
       if (which === "src" || which === "dst") updateBackupPreview();
+      if (which === "src") scheduleRequiredSpace();
     }
 
     async function startBackup() {
@@ -457,14 +620,17 @@
 
     async function init() {
       await refreshDrives();
+      await loadSettings();
       srcDrive.onfocus = refreshDrives;
       dstDrive.onfocus = refreshDrives;
-      srcDrive.onchange = () => { refreshDrives(); S.src.drive = srcDrive.value; S.src.path = ""; S.src.items = []; updateSrcSpace(); updateBackupPreview(); load("src") };
-      dstDrive.onchange = () => { refreshDrives(); S.dst.drive = dstDrive.value; S.dst.path = ""; updateDstSpace(); updateBackupPreview(); load("dst") };
+      srcDrive.onchange = () => { refreshDrives(); S.src.drive = srcDrive.value; S.src.path = ""; S.src.items = []; updateSrcSpace(); updateBackupPreview(); scheduleRequiredSpace(); load("src") };
+      dstDrive.onchange = () => { refreshDrives(); S.dst.drive = dstDrive.value; S.dst.path = ""; updateDstSpace(); updateBackupPreview(); updateBackupButton(); load("dst") };
       backupName.oninput = updateBackupPreview;
       overwrite.onchange = updateBackupPreview;
+      autoBackup.onchange = saveSettings;
 
       load("src"); load("dst"); poll();
+      setInterval(refreshDrives, 5000);
     }
     init();
   </script>
