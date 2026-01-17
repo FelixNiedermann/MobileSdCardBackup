@@ -201,7 +201,8 @@ def run_backup(cfg: dict):
         name = (cfg.get("backup_name") or folder_name).replace(" ", "_")
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
 
-        dst = dst_base if overwrite else dst_base / f"{name}__{timestamp}"
+        sep = "" if name.endswith("_") else "_"
+        dst = dst_base if overwrite else dst_base / f"{name}{sep}{timestamp}"
         dst.mkdir(parents=True, exist_ok=True)
 
         rsync = [
@@ -234,14 +235,34 @@ def run_backup(cfg: dict):
         progress_re = re.compile(r"(\d+)%")
 
         proc = subprocess.Popen(
-            rsync, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True
+            rsync,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            text=True,
+            bufsize=1,
         )
 
-        for line in proc.stdout:
-            JOB["log"].append(line)
-            m = progress_re.search(line)
-            if m:
-                JOB["progress"] = int(m.group(1))
+        buf = ""
+        while True:
+            chunk = proc.stdout.read(1024)
+            if not chunk:
+                break
+            buf += chunk
+            while True:
+                nl = buf.find("\n")
+                cr = buf.find("\r")
+                if nl == -1 and cr == -1:
+                    break
+                cut = min([i for i in (nl, cr) if i != -1])
+                line = buf[:cut]
+                buf = buf[cut + 1 :]
+                if line:
+                    JOB["log"].append(line + "\n")
+                m = progress_re.search(line)
+                if m:
+                    JOB["progress"] = int(m.group(1))
+        if buf:
+            JOB["log"].append(buf + "\n")
 
         proc.wait()
         subprocess.run(["sync"])

@@ -315,6 +315,26 @@
   </div>
 
   <script>
+    const srcDrive = document.getElementById("srcDrive");
+    const dstDrive = document.getElementById("dstDrive");
+    const srcSpace = document.getElementById("srcSpace");
+    const dstSpace = document.getElementById("dstSpace");
+    const srcList = document.getElementById("srcList");
+    const dstList = document.getElementById("dstList");
+    const backupName = document.getElementById("backupName");
+    const backupPreview = document.getElementById("backupPreview");
+    const spaceCheck = document.getElementById("spaceCheck");
+    const verify = document.getElementById("verify");
+    const overwrite = document.getElementById("overwrite");
+    const startBackupBtn = document.getElementById("startBackupBtn");
+    const autoBackup = document.getElementById("autoBackup");
+    const preview = document.getElementById("preview");
+    const previewTitle = document.getElementById("previewTitle");
+    const previewBody = document.getElementById("previewBody");
+    const banner = document.getElementById("banner");
+    const progress = document.getElementById("progress");
+    const log = document.getElementById("log");
+
     let S = { src: { drive: "", path: "", items: [] }, dst: { drive: "", path: "" } };
     let lastFinished = null;
     let drivesCache = [];
@@ -323,12 +343,17 @@
 
     async function api(u, m = "GET", d = null) {
       let r = await fetch(u, { method: m, headers: { 'Content-Type': 'application/json' }, body: d ? JSON.stringify(d) : null });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
       return r.json();
     }
 
     async function loadSettings() {
-      let s = await api("/api/settings");
-      autoBackup.checked = !!s.auto_backup;
+      try {
+        let s = await api("/api/settings");
+        autoBackup.checked = !!s.auto_backup;
+      } catch {
+        autoBackup.checked = false;
+      }
     }
 
     async function saveSettings() {
@@ -376,7 +401,8 @@
       let name = (backupName.value || defaultBackupName()).replace(/\s+/g, "_");
       let ts = fmtTimestamp(new Date());
       let base = S.dst.path ? `/${S.dst.path}` : "";
-      let folder = overwrite.checked ? (base || "/") : (base ? `${base}/` : "/") + `${name}__${ts}`;
+      let sep = name.endsWith("_") ? "" : "_";
+      let folder = overwrite.checked ? (base || "/") : (base ? `${base}/` : "/") + `${name}${sep}${ts}`;
       let drive = S.dst.drive ? `${S.dst.drive}:` : "";
       backupPreview.textContent = `Saved to ${drive}${folder}`;
     }
@@ -428,6 +454,13 @@
         spaceCheck.textContent = "";
         spaceCheck.className = "space";
       }
+    }
+
+    function updateBackupNameFromSource() {
+      if (!backupName.value) {
+        backupName.value = defaultBackupName();
+      }
+      updateBackupPreview();
     }
 
     function pickNewest(drives, preferPrefix) {
@@ -495,7 +528,12 @@
     }
 
     async function refreshDrives() {
-      let d = await api("/api/drives");
+      let d;
+      try {
+        d = await api("/api/drives");
+      } catch {
+        return;
+      }
       drivesCache = d.drives;
       let mounted = d.drives.filter(x => x.mounted);
       applyDriveOptions(mounted);
@@ -517,7 +555,12 @@
       mounted.forEach(x => {
         let b = document.createElement("button");
         b.innerText = "Eject " + x.id;
-        b.onclick = () => api("/api/drive/eject/" + x.id, "POST");
+        b.onclick = async () => {
+          await api("/api/drive/eject/" + x.id, "POST");
+          await refreshDrives();
+          load("src");
+          load("dst");
+        };
         db.appendChild(b);
       });
     }
@@ -533,7 +576,22 @@
 
     async function load(which) {
       let s = S[which];
-      let d = await api(`/api/list?drive=${s.drive}&path=${s.path}`);
+      if (!s.drive) {
+        let list = which === "src" ? srcList : dstList;
+        list.innerHTML = "";
+        let row = document.createElement("div");
+        row.className = "row";
+        row.textContent = "No drive selected.";
+        list.appendChild(row);
+        return;
+      }
+
+      let d;
+      try {
+        d = await api(`/api/list?drive=${s.drive}&path=${s.path}`);
+      } catch {
+        return;
+      }
 
       crumbs(
         document.getElementById(which + "Crumb"),
@@ -545,7 +603,7 @@
         }
       );
 
-      let list = document.getElementById(which + "List");
+      let list = which === "src" ? srcList : dstList;
       list.innerHTML = "";
 
       d.entries.forEach(e => {
@@ -593,16 +651,23 @@
       });
 
       if (which === "src" || which === "dst") updateBackupPreview();
+      if (which === "src") updateBackupNameFromSource();
       if (which === "src") scheduleRequiredSpace();
     }
 
     async function startBackup() {
-      if (!backupName.value) backupName.value = S.src.path.split("/").pop() || "backup";
+      if (!backupName.value) backupName.value = defaultBackupName();
       await api("/api/backup", "POST", { src: S.src, dst: S.dst, items: S.src.items, backup_name: backupName.value, verify: verify.checked, overwrite: overwrite.checked });
     }
 
     async function poll() {
-      let s = await api("/api/backup/status");
+      let s;
+      try {
+        s = await api("/api/backup/status");
+      } catch {
+        setTimeout(poll, 1000);
+        return;
+      }
       progress.style.width = (s.progress || 0) + "%";
       if (s.running) { banner.textContent = "Backup running…"; banner.className = "banner" }
       else if (s.result === "success") { banner.textContent = "Backup completed"; banner.className = "banner success" }
